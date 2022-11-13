@@ -153,7 +153,7 @@ public:
         return tmp;
     }
 
-    TDynamicVector operator-(double val) {
+    TDynamicVector operator-(T val) {
         TDynamicVector tmp(*this);
         for (int i = 0; i < tmp.sz; i++) {
             tmp.pMem[i] -= val;
@@ -161,7 +161,7 @@ public:
         return tmp;
     }
 
-    TDynamicVector operator*(double val) {
+    TDynamicVector operator*(T val) {
         TDynamicVector tmp(*this);
         for (int i = 0; i < tmp.sz; i++) {
             tmp.pMem[i] *= val;
@@ -267,7 +267,7 @@ public:
 
     // матрично-скалярные операции
     TDynamicMatrix operator*(const T& val) {
-        TDynamicMatrix tmp();
+        TDynamicMatrix tmp;
         tmp = *this;
         for (int i = 0; i < sz; i++) {
             tmp[i] = tmp[i] * val;
@@ -277,10 +277,10 @@ public:
 
     // матрично-векторные операции
     TDynamicVector<T> operator*(const TDynamicVector<T>& v) {
-        if (sz != v.sz) {
+        if (sz != v.size()) {
             throw "sizes do not match";
         }
-        TDynamicVector<T> tmp(v.sz);
+        TDynamicVector<T> tmp(v.size());
         for (int i = 0; i < sz; i++) {
             tmp[i] = 0;
             for (int j = 0; j < sz; j++) {
@@ -340,6 +340,145 @@ public:
         for (size_t i = 0; i < m.sz; i++) {
             if (i != m.sz - 1) ostr << "   \n  ";
             ostr << m.pMem[i];
+        }
+        return ostr;
+    }
+};
+
+
+
+
+
+//Нижнетреугольная матрица
+template<typename T>
+class TDynamicLowMatrix : private TDynamicVector<TDynamicVector<T>> {
+    using TDynamicVector<TDynamicVector<T>>::pMem;
+    using TDynamicVector<TDynamicVector<T>>::sz;
+public:
+    TDynamicLowMatrix(size_t s = 1) : TDynamicVector<TDynamicVector<T>>(s) {
+        if ((s <= 0) || (sz > MAX_MATRIX_SIZE)) {
+            throw out_of_range("the size does not match the parameters");
+        }
+
+        int k = 1;
+        for (size_t i = 0; i < sz; i++) {
+            pMem[i] = TDynamicVector<T>(k++);
+        }
+    }
+
+    using TDynamicVector<TDynamicVector<T>>::operator[];
+
+    // сравнение
+    bool operator==(const TDynamicLowMatrix& m) const noexcept {
+        if (sz != m.sz) {
+            return false;
+        }
+        for (int i = 0; i < sz; ++i) {
+            if (pMem[i] != m.pMem[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const TDynamicLowMatrix& m) const noexcept {
+        if (sz != m.sz) {
+            return true;
+        }
+        for (int i = 0; i < sz; ++i) {
+            if (pMem[i] != m.pMem[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // матрично-скалярные операции
+    TDynamicLowMatrix operator*(const T& val) {
+        TDynamicLowMatrix tmp;
+        tmp = *this;
+        for (int i = 0; i < sz; i++) {
+            tmp[i] = tmp[i] * val;
+        }
+        return tmp;
+    }
+
+    // матрично-векторные операции
+    TDynamicVector<T> operator*(const TDynamicVector<T>& v) {
+        if (sz != v.size()) {
+            throw "sizes do not match";
+        }
+        TDynamicVector<T> tmp(v.size());
+        int k = 0;
+        for (int i = 0; i < sz; i++) {
+            tmp[i] = 0;
+            k++;
+            for (int j = 0; j < k; j++) {
+                tmp[i] += pMem[i][j] * v[j];
+            }
+        }
+        return tmp;
+    }
+
+    size_t size() const noexcept { return sz; }
+
+    // матрично-матричные операции
+    TDynamicLowMatrix operator+(const TDynamicLowMatrix& m) {
+        if (sz != m.sz) {
+            throw "sizes should be equal";
+        }
+        TDynamicLowMatrix tmp(sz);
+        for (int i = 0; i < sz; i++) {
+            tmp.pMem[i] = pMem[i] + m.pMem[i];
+        }
+        return tmp;
+    }
+    TDynamicLowMatrix operator-(const TDynamicLowMatrix& m) {
+        if (sz != m.sz) {
+            throw "sizes should be equal";
+        }
+        TDynamicLowMatrix tmp(sz);
+        for (int i = 0; i < sz; i++) {
+            tmp.pMem[i] = pMem[i] - m.pMem[i];
+        }
+        return tmp;
+    }
+
+
+
+    TDynamicLowMatrix operator*(const TDynamicLowMatrix& m) {
+        if (sz != m.sz) {
+            throw "sizes should be match";
+        }
+        TDynamicLowMatrix<T> tmp(sz);
+        for (int i = 0; i < sz; i++) {
+            for (int k = 0; k < i + 1; k++) {
+                for (int j = k; j < i + 1; j++) {
+                    tmp.pMem[i][k] += pMem[i][j] * m.pMem[j][k];
+                }
+            }
+        }
+        return tmp;
+    }
+
+
+
+    // ввод/вывод
+    friend istream& operator>>(istream& istr, TDynamicLowMatrix& m) {
+        for (size_t i = 0; i < m.sz; i++) {
+            for (size_t j = 0; j < i + 1; j++)
+                istr >> m.pMem[i][j];
+        }
+        return istr;
+    }
+
+    friend ostream& operator<<(ostream& ostr, const TDynamicLowMatrix& m) {
+        for (size_t i = 0; i < m.sz; i++) {
+            ostr << "   \n  ";
+            ostr << m.pMem[i];
+            for (int k = 0; k < m.sz - (m.pMem[i]).size(); k++) {
+                ostr << "0 ";
+            }
         }
         return ostr;
     }
